@@ -41,8 +41,8 @@
               <option>Y</option>
             </select>
           </div>
-          <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData">Process data</button>
-          <button type="button" class="btn btn-primary" id="downloadPlot" @click="onDownloadButtonClick">
+          <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData" :disabled="!dataFile">Process data</button>
+          <button type="button" class="btn btn-primary" id="downloadPlot" @click="onDownloadButtonClick" :disabled="!results.length > 0">
             <i class="fa fa-download" aria-hidden="true"></i>
           </button>
         </form>
@@ -50,7 +50,7 @@
     </div>
     <div class="row">
       <div class="col">
-        <div id="plot" class="plot-container"></div>
+        <canvas id="plot" class="plot-container" width="1000" height="400"></canvas>
       </div>
     </div>
   </div>
@@ -59,13 +59,10 @@
   .plot-container {
     margin: 1rem 0;
     border: 1px solid #dddddd;
-    width: 100%;
-    height: 300px;
   }
 </style>
 <script>
   import {mapState} from 'vuex'
-  import * as d3 from 'd3'
 
   export default {
     name: 'snp-descent-plot',
@@ -76,41 +73,46 @@
         t0: undefined,
         t1: undefined,
         results: [],
-        selectedChromosome: '1'
+        selectedChromosome: '1',
+        minY: 300000000,
+        maxY: 0
       }
     },
     methods: {
       plot (data) {
-        const height = 300
-        const width = 1000
-        const x = d3.scaleLinear(x).range([width * 0.9, 0])
-        const y = d3.scaleLinear(y).range([height / 2, 0])
-        x.domain(d3.extent(data, d => d[0]))
-        y.domain([0, d3.max(data, d => d[1])])
-        const svg = d3.select('#plot')
-          .append('svg')
-          .attr('width', width)
-          .attr('height', height).append('g')
-          .attr('id', 'svg-plot')
-        const yAxis = d3.axisLeft(y).scale(y)
-          .tickFormat(function (d) {
-            return d
-          }).ticks(2)
-        svg.append('g').attr('transform', 'translate(30,50)').attr('height', height).call(yAxis)
-        svg.selectAll('dot').data(data).enter().append('circle').attr('r', 1).attr('cx', d => x(d[0]))
-          .attr('cy', d => y(d[1]) + ((Math.random() - 0.5) * 20)).attr('transform', 'translate(32, 50)')
+        var c = document.getElementById('plot')
+        var ctx = c.getContext('2d')
+        const arc = 2 * Math.PI
+        const width = (this.maxY - this.minY) - 20
+        const scale = 1000 / width  // with = 1000px
+        console.log('minPos: ' + this.minY + ' maxPos: ' + this.maxY + ' width: ' + width + ' scale: ' + scale)
+        for (let i = 0; i < data.length; i++) {
+          const position = data[i][0]
+          const score = data[i][1]
+          const x = position * scale
+          const y = 300 - (score * 30) // height = 400xp minus 100px offset
+          ctx.beginPath()
+          ctx.arc(x, y, 2, 0, arc, false)
+          ctx.closePath()
+          ctx.fill()
+          ctx.stroke()
+        }
       },
       onDownloadButtonClick () {
         console.log('this should trigger download')
       },
       clear () {
         this.results = []
-        d3.select('svg').remove()
+        this.minY = 300000000
+        this.maxY = 0
+        var c = document.getElementById('plot')
+        var ctx = c.getContext('2d')
+        ctx.clearRect(0, 0, 1000, 400)
       },
       onProcessData () {
         this.clear()
         this.t0 = performance.now()
-        const maxLines = 10000
+        const maxLines = 100000
         this.readSomeLines(this.dataFile, maxLines, this.forEachLine, this.onComplete)
       },
       storeData (event) {
@@ -146,13 +148,22 @@
         if (this.isSelectedChromosome(columns)) {
           const p1 = columns[3]
           const p2 = columns[6]
-          this.results.push([parseInt(columns[2]), this.compareAlleles(p1, p2)])
+          const pos = parseInt(columns[2])
+          if (pos > this.maxY) {
+            this.maxY = pos
+          }
+          if (pos < this.minY) {
+            this.minY = pos
+          }
+          this.results.push([pos, this.compareAlleles(p1, p2)])
         }
       },
       onComplete () {
         this.t1 = performance.now()
-        console.log(' in ' + Math.round((this.t1 - this.t0) / 1000) + ' seconden')
+        console.log('parsed in: ' + Math.round((this.t1 - this.t0) / 1000) + ' seconds')
         this.plot(this.results)
+        this.t2 = performance.now()
+        console.log('drawn in: ' + Math.round((this.t2 - this.t1) / 1000) + ' seconds')
       },
       readSomeLines (file, maxlines, forEachLine, onComplete) {
         const CHUNK_SIZE = 50000 // 50kb, arbitrarily chosen.
