@@ -50,7 +50,7 @@
     </div>
     <div class="row">
       <div class="col">
-        <canvas id="plot" class="plot-container" width="1000" height="400"></canvas>
+        <canvas id="plot" class="plot-container" width="1100" height="400"></canvas>
       </div>
     </div>
   </div>
@@ -68,6 +68,7 @@
     name: 'snp-descent-plot',
     data: function () {
       return {
+        maxLines: 100000, // one million
         definitionFile: undefined,
         dataFile: undefined,
         t0: undefined,
@@ -84,17 +85,23 @@
         var ctx = c.getContext('2d')
         const arc = 2 * Math.PI
         const width = (this.maxY - this.minY) - 20
-        const scale = 1000 / width  // with = 1000px
-        console.log('minPos: ' + this.minY + ' maxPos: ' + this.maxY + ' width: ' + width + ' scale: ' + scale)
+        const xScale = 1000 / width  // with = 1000px
+        const marginBottom = 50
+        const marginLeft = 50
+        const bandWidth = 20
+        const bandDistance = 50
+        const invertedYCorrection = 400 - marginBottom - bandWidth
+        console.log('minPos: ' + this.minY + ' maxPos: ' + this.maxY + ' band-width: ' + bandWidth + ' x-scale: ' + xScale)
         for (let i = 0; i < data.length; i++) {
           const position = data[i][0]
           const score = data[i][1]
-          const x = position * scale
-          const y = 300 - (score * 30) // height = 400xp minus 100px offset
+          const x = marginLeft + position * xScale
+          const jitter = (Math.random() - 0.5) * bandWidth
+          const y = (invertedYCorrection - (score * bandDistance)) + jitter // height = 400xp minus 100px offset
           ctx.beginPath()
           ctx.arc(x, y, 2, 0, arc, false)
           ctx.closePath()
-          ctx.fill()
+          // ctx.fill()
           ctx.stroke()
         }
       },
@@ -112,8 +119,7 @@
       onProcessData () {
         this.clear()
         this.t0 = performance.now()
-        const maxLines = 100000
-        this.readSomeLines(this.dataFile, maxLines, this.forEachLine, this.onComplete)
+        this.readSomeLines(this.dataFile, this.maxLines, this.forEachLine, this.onComplete)
       },
       storeData (event) {
         this.dataFile = event.target.files[0]
