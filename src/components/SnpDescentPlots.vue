@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div class="row">
     <div class="col">
       <h1>SNP descent plots</h1>
@@ -13,10 +14,25 @@
         </div>
         <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData">Process data</button>
       </form>
-      <div id="plot"></div>
+
     </div>
   </div>
+  <div class="row">
+    <div class="col">
+      <div id="plot" class="plot-container"></div>
+    </div>
+  </div>
+</div>
 </template>
+
+<style scoped>
+  .plot-container {
+    margin: 1rem 0;
+    border: 1px solid #dddddd;
+    width: 1040px;
+    height: 400px;
+  }
+</style>
 
 <script>
   import {mapState} from 'vuex'
@@ -36,21 +52,31 @@
     methods: {
       plot (data) {
         const height = 200
-        const width = 800
+        const width = 1000
         const x = d3.scaleLinear(x).range([width, 0])
         const y = d3.scaleLinear(y).range([height, 0])
         x.domain(d3.extent(data, (d, i) => i))
         y.domain([0, d3.max(data, d => d)])
         const svg = d3.select('#plot')
           .append('svg')
-          .attr('width', width + 60)
-          .attr('height', height + 60).append('g')
-        svg.selectAll('dot').data(data).enter().append('circle').attr('r', 3.5).attr('cx', (d, i) => x(i))
-          .attr('cy', d => y(d)).attr('transform', 'translate(50, 10)').attr('xIndex', (d, i) => i).attr('yVal', (d, i) => d).attr('class', 'dot')
+          .attr('width', width + 20)
+          .attr('height', height + 10).append('g')
+        svg.selectAll('dot')
+          .data(data).enter()
+          .append('circle')
+          .style('stroke', 'black')
+          .style('fill', 'white')
+          .attr('r', 2)
+          .attr('cx', (d, i) => x(i))
+          .attr('cy', d => y(d) + (Math.random() - 0.5) * 20)
+          .attr('transform', 'translate(10, 50)')
+          // .attr('xIndex', (d, i) => i)
+          // .attr('yVal', (d, i) => d)
+          // .attr('class', 'dot')
       },
       onProcessData () {
         this.t0 = performance.now()
-        const maxLines = 800000
+        const maxLines = 8000000 // alles
         this.readSomeLines(this.dataFile, maxLines, this.forEachLine, this.onComplete)
       },
       storeData (event) {
@@ -78,8 +104,10 @@
       forEachLine (line) {
         const lineContent = line.split('\t')
         const p1 = lineContent[3]
-        const p2 = lineContent[6]
-        this.results.push(this.compareAlleles(p1, p2))
+        const p2 = lineContent[9]
+        if (lineContent[1] === 'X') {
+          this.results.push(this.compareAlleles(p1, p2))
+        }
       },
       onComplete () {
         this.t1 = performance.now()
