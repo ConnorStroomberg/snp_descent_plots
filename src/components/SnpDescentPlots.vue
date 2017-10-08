@@ -42,15 +42,15 @@
             </select>
           </div>
           <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData" :disabled="!dataFile">Process data</button>
-          <button type="button" class="btn btn-primary" id="downloadPlot" @click="onDownloadButtonClick" :disabled="!results.length > 0">
-            <i class="fa fa-download" aria-hidden="true"></i>
-          </button>
+          <a id="download-btn" >
+             download
+          </a>
         </form>
       </div>
     </div>
     <div class="row">
       <div class="col">
-        <canvas id="plot" class="plot-container" width="1100" height="400"></canvas>
+        <canvas id="plot" class="plot-container" width="1100" height="300"></canvas>
       </div>
     </div>
   </div>
@@ -76,13 +76,34 @@
         results: [],
         selectedChromosome: '1',
         minY: 300000000,
-        maxY: 0
+        maxY: 0,
+        downloadUrl: undefined
       }
+    },
+    mounted: function () {
+      /**
+       * This is the function that will take care of image extracting and
+       * setting proper filename for the download.
+       * IMPORTANT: Call it from within a onclick event.
+      */
+      function downloadCanvas (link, canvasId, filename) {
+        link.href = document.getElementById(canvasId).toDataURL()
+        link.download = filename
+      }
+
+      /**
+       * The event handler for the link's onclick event. We give THIS as a
+       * parameter (=the link element), ID of the canvas and a filename.
+      */
+      document.getElementById('download-btn').addEventListener('click', function () {
+        console.log('download')
+        downloadCanvas(this, 'plot', 'test.png')
+      }, false)
     },
     methods: {
       plot (data) {
-        var c = document.getElementById('plot')
-        var ctx = c.getContext('2d')
+        const canvas = document.getElementById('plot')
+        const ctx = canvas.getContext('2d')
         const arc = 2 * Math.PI
         const width = (this.maxY - this.minY) - 20
         const xScale = 1000 / width  // with = 1000px
@@ -90,31 +111,42 @@
         const marginLeft = 50
         const bandWidth = 20
         const bandDistance = 50
-        const invertedYCorrection = 400 - marginBottom - bandWidth
+        const invertedYCorrection = 300 - marginBottom - bandWidth
         console.log('minPos: ' + this.minY + ' maxPos: ' + this.maxY + ' band-width: ' + bandWidth + ' x-scale: ' + xScale)
+        this.drawYAxis(ctx, invertedYCorrection, marginLeft, marginBottom, bandWidth, bandDistance)
         for (let i = 0; i < data.length; i++) {
           const position = data[i][0]
           const score = data[i][1]
           const x = marginLeft + position * xScale
           const jitter = (Math.random() - 0.5) * bandWidth
-          const y = (invertedYCorrection - (score * bandDistance)) + jitter // height = 400xp minus 100px offset
+          const y = (invertedYCorrection - ((score + 1) * bandDistance)) + jitter // plus one to normalize [-1, 2] to [0, 3]
           ctx.beginPath()
           ctx.arc(x, y, 2, 0, arc, false)
-          ctx.closePath()
+          // ctx.closePath()
           // ctx.fill()
           ctx.stroke()
         }
       },
-      onDownloadButtonClick () {
-        console.log('this should trigger download')
+      drawYAxis (ctx, invertedYCorrection, marginLeft, marginBottom, bandWidth, bandDistance) {
+        const height = 3 * bandWidth + 3 * (bandDistance - bandWidth)
+        const width = 1
+        const distanceFromPlot = 16
+        const x = marginLeft - distanceFromPlot
+        const y = invertedYCorrection - height
+        console.log('height: ' + height + ' y: ' + y + ' invertedYCorrection: ' + invertedYCorrection)
+        ctx.fillRect(x, y, width, height)
+      },
+      setDownloadUrl () {
+        const canvas = document.getElementById('plot')
+        this.downloadUrl = canvas.toDataURL()
       },
       clear () {
         this.results = []
         this.minY = 300000000
         this.maxY = 0
-        var c = document.getElementById('plot')
-        var ctx = c.getContext('2d')
-        ctx.clearRect(0, 0, 1000, 400)
+        var canvas = document.getElementById('plot')
+        // this resets the canvas
+        canvas.width = canvas.width
       },
       onProcessData () {
         this.clear()
@@ -169,7 +201,8 @@
         console.log('parsed in: ' + Math.round((this.t1 - this.t0) / 1000) + ' seconds')
         this.plot(this.results)
         this.t2 = performance.now()
-        console.log('drawn in: ' + Math.round((this.t2 - this.t1) / 1000) + ' seconds')
+        console.log('drawn' + this.results.length + ' points in: ' + Math.round((this.t2 - this.t1) / 1000) + ' seconds')
+        this.setDownloadUrl()
       },
       readSomeLines (file, maxlines, forEachLine, onComplete) {
         const CHUNK_SIZE = 50000 // 50kb, arbitrarily chosen.
