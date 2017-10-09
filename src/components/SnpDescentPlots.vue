@@ -42,9 +42,7 @@
             </select>
           </div>
           <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData" :disabled="!dataFile">Process data</button>
-          <a id="download-btn" >
-             download
-          </a>
+          <a class="btn btn-primary" v-bind:class="{ disabled: !isDownloadReady }" id="download-btn" href="#" role="button" :disabled="!isDownloadReady">download</a>
         </form>
       </div>
     </div>
@@ -77,7 +75,7 @@
         selectedChromosome: '1',
         minY: 300000000,
         maxY: 0,
-        downloadUrl: undefined
+        isDownloadReady: false
       }
     },
     mounted: function () {
@@ -202,7 +200,7 @@
         this.plot(this.results)
         this.t2 = performance.now()
         console.log('drawn' + this.results.length + ' points in: ' + Math.round((this.t2 - this.t1) / 1000) + ' seconds')
-        this.setDownloadUrl()
+        this.isDownloadReady = true
       },
       readSomeLines (file, maxlines, forEachLine, onComplete) {
         const CHUNK_SIZE = 50000 // 50kb, arbitrarily chosen.
