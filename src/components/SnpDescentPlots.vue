@@ -41,11 +41,25 @@
               <option>Y</option>
             </select>
           </div>
-          <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData">Process data</button>
-          <button type="button" class="btn btn-primary" id="downloadPlot" @click="onDownloadButtonClick">
-            <i class="fa fa-download" aria-hidden="true"></i>
-          </button>
-          <span id="statusUpdate"><small><i><span v-model="status"> {{status}}</span></i></small><i class="fa fa-spinner fa-pulse fa-fw" v-if="isLoading"></i></span>
+          <div class="row">
+            <div class="col-3">
+                <button type="button" class="btn btn-primary" id="processFiles" @click="onProcessData">Process data</button>
+                <button type="button" class="btn btn-primary" id="downloadPlot" @click="onDownloadButtonClick">
+                  <i class="fa fa-download" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="col-3">
+                <span id="statusUpdate">
+                  <small>
+                    <i><span v-model="status"> {{status}}</span></i>
+                  </small>
+                  <i class="fa fa-spinner fa-pulse fa-fw" v-if="isLoading"></i>
+                </span>
+                <div class="progress">
+                  <div class="progress-bar" role="progressbar" style="height: 0.6rem;" v-bind:style="{width: rounded + '%'}" :aria-valuenow="rounded" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+          </div>
         </form>
       </div>
     </div>
@@ -64,6 +78,10 @@
   #statusUpdate {
     color: grey;
   }
+
+  .progress-bar {
+    background-color: grey
+  }
 </style>
 <script>
   import { mapState } from 'vuex'
@@ -76,14 +94,18 @@
     name: 'snp-descent-plot',
     data: function () {
       return {
-        isLoading: false,
-        status: '',
+        isLoading: true,
+        status: 'Processing data',
         dataFile: undefined,
         counts: {},
         t0: undefined,
         t1: undefined,
         results: {},
-        selectedChromosome: '1'
+        selectedChromosome: '1',
+        percentageCompleted: 1,
+        linePersentage: undefined,
+        progressUpdateCounter: 0,
+        rounded: 1
       }
     },
     methods: {
@@ -220,6 +242,20 @@
       forEachLine (line) {
         const columns = line.split('\t')
         if (this.isSelectedChromosome(columns)) {
+          if (!this.linePersentage) {
+            const lineSize = new Blob([line]).size
+            this.linePersentage = 100 / (this.dataFile.size / lineSize)
+            console.log('line linePersentage: ' + this.linePersentage)
+          } else {
+            this.progressUpdateCounter++
+            const updateInterval = 5000
+            if (this.progressUpdateCounter >= updateInterval) {
+              this.progressUpdateCounter = 0
+              this.percentageCompleted = this.percentageCompleted + this.linePersentage * updateInterval
+              this.rounded = Math.round(this.percentageCompleted)
+              console.log('percentageCompleted:' + this.rounded)
+            }
+          }
           const combinationLabels = Object.keys(this.$store.state.dataIndex)
           for (let combination of combinationLabels) {
             const index1 = this.$store.state.dataIndex[combination].gPos1
@@ -247,6 +283,7 @@
         }
         this.isLoading = false
         this.status = `Completed in ${Math.round((this.t1 - this.t0) / 1000)} seconds`
+        this.rounded = 100
       },
       parseDefinitionFile (event) {
         const file = event.target.files[0]
