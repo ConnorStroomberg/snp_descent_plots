@@ -6090,7 +6090,7 @@ testdouble@^1.11.1:
     quibble "^0.4.0"
     stringify-object "^2.4.0"
 
-text-encoding@0.6.4:
+text-encoding@0.6.4, text-encoding@^0.6.4:
   version "0.6.4"
   resolved "https://registry.yarnpkg.com/text-encoding/-/text-encoding-0.6.4.tgz#e399a982257a276dae428bb92845cb71bdc26d19"
 

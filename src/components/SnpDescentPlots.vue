@@ -73,6 +73,7 @@
   import * as d3 from 'd3'
   import JsPDF from 'jspdf-yworks'
   import svg2pdf from 'svg2pdf.js'
+  import { TextDecoder } from 'text-encoding'
 
   export default {
     name: 'snp-descent-plot',
@@ -301,6 +302,8 @@
       },
       readSomeLines (file, maxlines, forEachLine, onComplete) {
         const CHUNK_SIZE = 50000 // 50kb, arbitrarily chosen.
+        // const decoder = new TextDecoder()
+        // const encoding = 'UTF-8'
         const decoder = new TextDecoder()
         let offset = 0
         let linecount = 0
@@ -309,9 +312,15 @@
         fr.onload = function () {
           // Use stream:true in case we cut the file
           // in the middle of a multi-byte character
-          results += decoder.decode(fr.result, {
-            stream: true
-          })
+          // results += decoder.decode(fr.result, {
+          //   stream: true
+          // })
+
+          // while (fr.result = next_chunk()) {
+          results += decoder.decode(fr.result, {stream: true})
+          // }
+          results += decoder.decode() // finish the stream
+
           let lines = results.split('\n')
           results = lines.pop() // In case the line did not end yet.
           linecount += lines.length
