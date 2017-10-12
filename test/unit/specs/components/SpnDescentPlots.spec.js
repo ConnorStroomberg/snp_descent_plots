@@ -1,8 +1,15 @@
 import SnpDescentPlots from 'components/SnpDescentPlots.vue'
+import fs from 'fs'
 
 describe('SnpDescentPlots', () => {
   describe('Name', () => {
     it('should use "SnpDescentPlots" as name', () => {
+      fs.readFile(__dirname + '/test.txt', function (err, data) {
+        if (err) {
+          throw err
+        }
+        console.log(data.toString())
+      });
       expect(SnpDescentPlots.name).to.equal('snp-descent-plot')
     })
   })

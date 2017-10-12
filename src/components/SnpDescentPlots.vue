@@ -6,15 +6,15 @@
         <form>
           <div class="form-group">
             <label for="devFileInput">Definition file</label>
-            <input class="form-control" id="devFileInput" type="file" @change="parseDefinitionFile">
+            <input class="form-control col-12 col-sm-9" id="devFileInput" type="file" @change="parseDefinitionFile">
           </div>
           <div class="form-group">
             <label for="snpFileInput">Data file</label>
-            <input class="form-control" id="snpFileInput" type="file" @change="storeData">
+            <input class="form-control col-12 col-sm-9" id="snpFileInput" type="file" @change="storeData">
           </div>
           <div class="form-group">
             <label for="selectChromosome">Chromosome</label>
-            <select class="form-control" id="selectChromosome" v-model="selectedChromosome">
+            <select class="form-control col-12 col-md-1 col-sm-2" id="selectChromosome" v-model="selectedChromosome">
               <option>1</option>
               <option>2</option>
               <option>3</option>
